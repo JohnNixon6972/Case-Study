@@ -1,0 +1,675 @@
+---
+title: "Project 2 Data Exploration"
+output: html_document
+date: "2024-03-11"
+---
+
+\
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load packages (R):
+
+```{r}
+library(tidyverse) #for data visualization and manipulation:
+library(tidymodels)
+library(caret)
+library(patchwork) #to combine plots
+```
+
+Load packages (python):
+
+```{r}
+library(reticulate) #interfaces with Python
+#conda_create("r-reticulate", conda = "C:/Users/becca/miniconda3/Scripts/conda.exe") #install & load python from my computer
+use_condaenv("r-reticulate", conda = "C:/Users/becca/miniconda3/Scripts/conda.exe")
+#py_install(packages = c("pandas", "scikit-learn")) #install and then load relevant Python libraries:
+pd <- import("pandas")
+sklearn <- import("sklearn")
+np <- import("numpy")
+```
+
+Load data
+
+```{r}
+train <- read_csv("D:/Machine Learning/Project 2/train.csv")
+train$Status <- factor(train$Status)
+summary(train)
+```
+
+• explore the structure of the data and correlations between features • bar/column plots for categorical variables and histograms for continuous
+
+```{r}
+status_plot <- ggplot(train) +
+  geom_bar(aes(x = Status), fill = "#D81B60", alpha = 0.75) +
+  ggtitle("A")
+```
+
+```{r}
+ggplot(train) + 
+  geom_histogram(aes(x = N_Days), binwidth = 500) +
+  labs(x = "Number of Days in Hospital") +
+  facet_wrap(~Status)
+```
+
+```{r}
+drug_plot <- ggplot(train) + 
+  geom_bar(aes(x = Status, fill = factor(Drug)), position = "fill", alpha = 0.75) + 
+  #fill = Drug and position = fill set it so the bars have a height of 1 with sections colored according to the relative proportion of each Drug type per status
+  scale_fill_manual(values = c("#D81B60", "#1E88E5")) +
+  labs(y = "Proportion of class members", x = "Outcome/status class", fill = "Drug") +
+  ggtitle("B")
+```
+
+```{r}
+ggplot(train) + 
+  geom_histogram(aes(x = Age), binwidth = 1000) +
+  labs(x = "Age (Days)") +
+  facet_wrap(~Status)
+```
+
+```{r}
+ggplot(train) + 
+  geom_bar(aes(x = Status, fill = factor(Sex)), position = "fill", alpha = 0.75) +
+  scale_fill_manual(values = c("#D81B60", "#1E88E5"), labels = unique(factor(train$Sex))) +
+  labs(fill = "Sex")
+```
+
+```{r}
+ggplot(train) + 
+  geom_bar(aes(x = Ascites, fill = factor(Status)), position = "fill", alpha = 0.75)
+```
+
+```{r}
+ggplot(train) + 
+  geom_bar(aes(x = Hepatomegaly, fill = factor(Status)), position = "fill", alpha = 0.75)
+```
+
+```{r}
+ggplot(train) + 
+  geom_bar(aes(x = Status, fill = factor(Spiders)), position = "fill", alpha = 0.75)
+```
+
+```{r}
+ggplot(train) + 
+  geom_bar(aes(x = Status, fill = factor(Edema)), position = "fill", alpha = 0.75)
+```
+
+```{r}
+bilirubin_plot <- ggplot(train) + 
+  geom_histogram(aes(x = Bilirubin, fill = factor(Status)), position = "fill", alpha = 0.75, binwidth = 2) +
+  scale_fill_manual(values = c("#D81B60", "#1E88E5", "#FFC107")) +
+  labs(y = "Proportion of each class", fill = "Outcome/status class") +
+  ggtitle("C")
+```
+
+```{r}
+ggplot(train) + 
+  geom_histogram(aes(x = Cholesterol, fill = factor(Status)), position = "fill", alpha = 0.75, binwidth = 100)
+
+train |> 
+  group_by(Status) |> 
+  summarize(
+    mean = mean(Cholesterol)
+  ) |> 
+ggplot() +
+  geom_bar(aes(x = Status, fill = mean), alpha = 0.75) 
+```
+
+```{r}
+ggplot(train) + 
+  geom_histogram(aes(x = Albumin, fill = factor(Status)), position = "fill", alpha = 0.75, binwidth = 0.25)
+
+train |> 
+  group_by(Status) |> 
+  summarize(
+    mean = mean(Albumin)
+  ) |> 
+ggplot() +
+  geom_bar(aes(x = Status, fill = mean), alpha = 0.75) 
+```
+
+```{r}
+ggplot(train) + 
+  geom_bar(aes(x = Stage, fill = factor(Status)), position = "fill", alpha = 0.75)
+```
+
+```{r}
+ggplot(train) + 
+  geom_histogram(aes(x = Copper, fill = factor(Status)), position = "fill", alpha = 0.75, binwidth = 100)
+
+train |> 
+  group_by(Status) |> 
+  summarize(
+    mean = mean(Copper)
+  ) |> 
+ggplot() +
+  geom_bar(aes(x = Status, fill = mean), alpha = 0.75) 
+```
+
+```{r}
+ggplot(train) + 
+  geom_histogram(aes(x = Alk_Phos, fill = factor(Status)), position = "fill", alpha = 0.75, binwidth = 1000)
+```
+
+```{r}
+ggplot(train) + 
+  geom_histogram(aes(x = SGOT, fill = factor(Status)), position = "fill", alpha = 0.75, binwidth = 75)
+```
+
+```{r}
+ggplot(train) + 
+  geom_histogram(aes(x = Tryglicerides, fill = factor(Status)), position = "fill", alpha = 0.75, binwidth = 75)
+```
+
+```{r}
+ggplot(train) + 
+  geom_histogram(aes(x = Platelets, fill = factor(Status)), position = "fill", alpha = 0.75, binwidth = 75)
+```
+
+```{r}
+ggplot(train) + 
+  geom_histogram(aes(x = Prothrombin, fill = factor(Status)), position = "fill", alpha = 0.75, binwidth = 2)
+```
+
+```{r}
+train_num <- train |> 
+  select(where(is.numeric), Status) |> 
+  slice_sample(n = 100) 
+pairs(Status ~ ., data = train_num)
+```
+
+Combine plots for report:
+
+```{r}
+fig_1 <- (status_plot) / (drug_plot | bilirubin_plot)
+ggsave("D:/Machine Learning/Project 2/figure 1.png", fig_1, width = 7, height = 5)
+```
+
+Create the function to randomly delete data for imputation simulations:
+
+```{r}
+random_delete <- function(data, p, exclude = c("Status", "id"), seed = NULL, save = TRUE){
+  if(is.null(seed) == FALSE){
+    set.seed(seed)
+  }
+  deleted_indices <- list()
+  for(column in colnames(select(data, - all_of(exclude)))){ #by column
+    deleted_indices[[column]] <- numeric()
+    for(row in 1:nrow(train)){ #then by cell in that column
+      if(rbinom(1, 1, p) == 1){ #if a single random draw from a Bernoulli distribution with probability p is equal to 1
+        data[[column]][row] <- NA #replace the value with NA
+        if(save == TRUE){
+          deleted_indices[[column]] <- append(deleted_indices[[column]], row) #and log the indices of that deleted value for comparison later
+        }
+      }
+    }
+  }
+  return <- list(data = data,
+                 deleted_indices = deleted_indices) #returns an object with the new data (w/ NAs) and a list of all deleted values' indices by feature
+  return(return)
+}
+```
+
+```{r}
+train_deletion <- random_delete(train, p = 0.15, seed = 8) #run with a probability of 0.15 and seed (this was re-run with seeds 8-12)
+train_nas <- train_deletion$data #take out the new data
+```
+
+A function to automatically one hot encode:
+
+```{r}
+one_hot_encode <- function(data){
+  data_encoded <- select(data, -where(is.character)) #take out the numeric features
+  for(column in colnames(select(data, where(is.character)))){ #for the categorical features
+    one_hot_encoder_temp <- dummyVars(str_c("~ ", column, sep = ""), data = data) #create dummy variables
+    predicted_temp <- data.frame(predict(one_hot_encoder_temp, newdata = data)) #write a new dataframe of encoded variables
+    data_encoded <- base::cbind(data_encoded, predicted_temp) #add the newly encoded features to the main dataframe
+  }
+  return(data_encoded)
+}
+```
+
+```{r}
+train_nas_encoded <- one_hot_encode(train_nas) #one hot encode the data with NAs
+```
+
+Transfer objects to python environment:
+
+```{r}
+train_nas_encoded <- replace(train_nas_encoded, is.na(train_nas_encoded) == TRUE, "NaN") #replace "NA" with "NaN" for Python use
+py$train_data_na <- select(train_nas_encoded, -Status) #remove the labels
+py$train_data <- train
+```
+
+Imputers in python (this is identical to model prep pipeline):
+
+```{python}
+import numpy as np
+
+train_data_sim = train_data_na.copy(deep=True) #create copies for each imputer
+
+train_data_knn = train_data_na.copy(deep=True)
+
+train_data_iter = train_data_na.copy(deep=True)
+
+#Simple imputation, which uses the method "mean"
+
+from sklearn.impute import SimpleImputer
+
+ 
+
+simp = SimpleImputer(strategy="mean")
+
+simp.set_output(transform="pandas")
+
+ 
+
+simp.fit(train_data_sim)
+
+train_data_sim = simp.transform(train_data_sim)
+
+train_data_sim
+
+ 
+
+#K Nearest Neighbors imputation
+
+from sklearn.impute import KNNImputer
+
+
+knn = KNNImputer(weights="uniform", n_neighbors=5) #could also set as distance; n_neighbors defaults to 5
+
+knn.set_output(transform="pandas")
+
+ 
+
+knn.fit(train_data_knn)
+
+train_data_knn = knn.transform(train_data_knn)
+
+
+#iterative
+from sklearn.experimental import enable_iterative_imputer
+from sklearn.impute import IterativeImputer
+
+imp_it = IterativeImputer()
+
+imp_it.set_output(transform="pandas")
+
+train_data_iter = imp_it.fit_transform(train_data_iter)
+```
+
+Move back to R:
+
+```{r}
+train_simple_imputed <- py$train_data_sim 
+train_knn_imputed <- py$train_data_knn
+train_iter_imputed <- py$train_data_iter
+```
+
+Alter imputed one-hot-encoded features (turn them back to factors for data visualization purposes):
+
+```{r}
+train_simple_imputed_factor <- train_simple_imputed |> 
+  mutate(Drug = factor(ifelse(DrugD.penicillamine >= 0.5, "D.penicillamine", "Placebo")),
+         Sex = factor(ifelse(SexF >= 0.5, "F", "M")),
+         Ascites = factor(ifelse(AscitesN >= 0.5, "N", "Y")),
+         Hepatomegaly = factor(ifelse(HepatomegalyN >= 0.5, "N", "Y")),
+         Spiders = factor(ifelse(SpidersN >= 0.5, "N", "Y")),
+         Edema = factor(ifelse(EdemaN >=0.5, "N", 
+                               ifelse(EdemaS >= 0.5, "S", "Y")))) |> 
+  select(id, N_Days, Age, Bilirubin, Cholesterol, Albumin, Copper, Alk_Phos, SGOT, Tryglicerides, Platelets, Prothrombin, Stage, Drug, Sex, Ascites, Hepatomegaly, Spiders, Edema)
+
+train_knn_imputed_factor <- train_knn_imputed |> 
+    mutate(Drug = factor(ifelse(DrugD.penicillamine >= 0.5, "D.penicillamine", "Placebo")),
+         Sex = factor(ifelse(SexF >= 0.5, "F", "M")),
+         Ascites = factor(ifelse(AscitesN >= 0.5, "N", "Y")),
+         Hepatomegaly = factor(ifelse(HepatomegalyN >= 0.5, "N", "Y")),
+         Spiders = factor(ifelse(SpidersN >= 0.5, "N", "Y")),
+         Edema = factor(ifelse(EdemaN >=0.5, "N", 
+                               ifelse(EdemaS >= 0.5, "S", "Y")))) |> 
+  select(id, N_Days, Age, Bilirubin, Cholesterol, Albumin, Copper, Alk_Phos, SGOT, Tryglicerides, Platelets, Prothrombin, Stage, Drug, Sex, Ascites, Hepatomegaly, Spiders, Edema)
+
+train_iter_imputed_factor <- train_iter_imputed |> 
+      mutate(Drug = factor(ifelse(DrugD.penicillamine >= 0.5, "D.penicillamine", "Placebo")),
+         Sex = factor(ifelse(SexF >= 0.5, "F", "M")),
+         Ascites = factor(ifelse(AscitesN >= 0.5, "N", "Y")),
+         Hepatomegaly = factor(ifelse(HepatomegalyN >= 0.5, "N", "Y")),
+         Spiders = factor(ifelse(SpidersN >= 0.5, "N", "Y")),
+         Edema = factor(ifelse(EdemaN >=0.5, "N", 
+                               ifelse(EdemaS >= 0.5, "S", "Y")))) |> 
+  select(id, N_Days, Age, Bilirubin, Cholesterol, Albumin, Copper, Alk_Phos, SGOT, Tryglicerides, Platelets, Prothrombin, Stage, Drug, Sex, Ascites, Hepatomegaly, Spiders, Edema)
+
+train_factor <- train |>
+        mutate(Drug = factor(Drug),
+         Sex = factor(Sex),
+         Ascites = factor(Ascites),
+         Hepatomegaly = factor(Hepatomegaly),
+         Spiders = factor(Spiders),
+         Edema = factor(Edema))
+```
+
+A function to visualize the imputed versus original data and to calculate mean square error:
+
+```{r}
+compare_deleted <- function(feature, complete_data, imputed_data, deletion_object, class = NULL){ 
+  #where feature is a string of the feature to check, complete and imputed_data are dataframes, and deletion_object is the list of lists produced in the random_delete function
+  #browser()
+  indices <- deletion_object[["deleted_indices"]][[feature]]
+  if(is.null(class)){
+    plot_frame <- data.frame(indices = indices,
+                             complete_values = complete_data[[feature]][indices],
+                             imputed_values = imputed_data[[feature]][indices])
+    if(is.factor(plot_frame$imputed_values)){
+      plot_frame$complete_values <- factor(plot_frame$complete_values, levels = levels(plot_frame$imputed_values))
+    }
+    g <- ggplot(plot_frame, aes(x = indices)) +
+      geom_point(aes(y = complete_values), color = "skyblue", size = 3, alpha = 0.5) +
+      geom_point(aes(y = imputed_values), color = "pink2", size = 3, alpha = 0.5) +
+      labs(x = "Row Index", y = feature) +
+      theme_bw()
+    if(is.numeric(plot_frame$complete_values) == TRUE){
+      distrib <- ggplot(plot_frame) +
+        geom_histogram(aes(x = complete_values), fill = "skyblue", just = 0.4, color = NA, alpha = 0.5, bins = 5) +
+        geom_histogram(aes(x = imputed_values), fill = "pink2", just = 0.6, color = NA, alpha = 0.5, bins = 5) +
+        theme_bw() +
+        labs(x = feature, y = "Frequency")
+      mss <- mean((plot_frame$complete_values - plot_frame$imputed_values)^2)
+    }else{
+      distrib <- ggplot(plot_frame) +
+        geom_bar(aes(x = complete_values), fill = "skyblue", just = 0.4, color = NA, alpha = 0.5) +
+        geom_bar(aes(x = imputed_values), fill = "pink2", just = 0.6, color = NA, alpha = 0.5) +
+        theme_bw() +
+        labs(x = feature, y = "Frequency")
+      mss <- mean((as.numeric(plot_frame$complete_values) - as.numeric(plot_frame$imputed_values))^2)
+    }
+    cat("Mean Square Differences for", feature, ":", mss, sep = " ")
+    return(g | distrib)
+  }else{
+    plot_frame <- data.frame(class = complete_data[[class]][indices],
+                             indices = indices,
+                             complete_values = complete_data[[feature]][indices],
+                             imputed_values = imputed_data[[feature]][indices])
+    if(is.factor(plot_frame$imputed_values)){
+      plot_frame$complete_values <- factor(plot_frame$complete_values, levels = levels(plot_frame$imputed_values))
+    }
+    mss <- numeric()
+    g <- ggplot(plot_frame, aes(x = indices, shape = class)) +
+      geom_point(aes(y = complete_values), color = "skyblue", size = 3, alpha = 0.5) +
+      geom_point(aes(y = imputed_values), color = "pink2", size = 3, alpha = 0.5) +
+      labs(x = "Row Index", y = feature) +
+      theme_bw()
+    g_wrap <- g + facet_wrap(.~class)
+    if(is.numeric(plot_frame$complete_values) == TRUE){
+      distrib <- ggplot(plot_frame) +
+        geom_histogram(aes(x = complete_values), fill = "skyblue", just = 0.4, color = NA, alpha = 0.5, bins = 5) +
+        geom_histogram(aes(x = imputed_values), fill = "pink2", just = 0.6, color = NA, alpha = 0.5, bins = 5) +
+        theme_bw() +
+        labs(x = feature, y = "Frequency")
+      distrib_wrap <- distrib + facet_wrap(.~class)
+      mss <- mean((plot_frame$complete_values - plot_frame$imputed_values)^2)
+      for(cl in unique(plot_frame$class)){
+        fi <- filter(plot_frame, class == cl)
+        mss <- c(mss, mean((fi$complete_values - fi$imputed_values)^2))
+      }
+    }else{
+      distrib <- ggplot(plot_frame) +
+        geom_bar(aes(x = complete_values), fill = "skyblue", just = 0.4, color = NA, alpha = 0.5) +
+        geom_bar(aes(x = imputed_values), fill = "pink2", just = 0.6, color = NA, alpha = 0.5) +
+        theme_bw() +
+        labs(x = feature, y = "Frequency")
+      distrib_wrap <- distrib + facet_wrap(.~class)
+      mss <- mean((as.numeric(plot_frame$complete_values) - as.numeric(plot_frame$imputed_values))^2)
+      for(cl in unique(plot_frame$class)){
+        fi <- filter(plot_frame, class == cl)
+        mss <- c(mss, mean((as.numeric(fi$complete_values) - as.numeric(fi$imputed_values))^2))
+      }
+    }
+    cat("Overall Mean Square Differences for", feature, ":", mss[1], sep = " ")
+    for(index in 1:length(unique(plot_frame$class))){
+      cat("\n", unique(plot_frame$class)[index], ":", mss[index + 1], sep = " ")
+    }
+    return((g / g_wrap) | (distrib / distrib_wrap))
+  }
+}
+```
+
+```{r}
+compare_deleted(feature = "SGOT",
+                complete_data = train_factor,
+                imputed_data = train_iter_imputed_factor,
+                deletion_object = train_deletion,
+                class = "Status") #use example, re-run and replace the feature name
+```
+
+A function to calculate mean square error for different imputation methods (either by class or overall):
+
+```{r}
+imputation_metrics <- function(complete_data, imputed_data, deletion_object, class = NULL){
+  #browser()
+  if(is.null(class) == TRUE){
+    mse <- data.frame(matrix(nrow = 0, ncol = 4))
+    colnames(mse) <- c("feature", "MSE", "n_deleted", "range")
+    for(ft in colnames(complete_data)){
+      indices <- deletion_object[["deleted_indices"]][[ft]]
+      if(is.null(indices)){next}
+      if(is.numeric(complete_data[[ft]]) == TRUE){
+        temp <- data.frame(feature = ft,
+                           MSE = mean((complete_data[[ft]][indices] - imputed_data[[ft]][indices])^2), #compute MSE
+                           n_deleted = length(indices), #the number of values imputed
+                           range = max(c(complete_data[[ft]][indices], #the range of the feature (including values pre-deletion and post-imputation)
+                                         imputed_data[[ft]][indices])) 
+                           - min(c(complete_data[[ft]][indices],
+                                   imputed_data[[ft]][indices]))
+        )
+        mse <- rbind(mse, temp)
+      }else{
+        temp <- data.frame(feature = ft,
+                           MSE = mean((as.numeric(complete_data[[ft]][indices]) -
+                              as.numeric(imputed_data[[ft]][indices]))^2),
+                           n_deleted = length(indices),
+                           range = max(c(as.numeric(complete_data[[ft]][indices]),
+                                         as.numeric(imputed_data[[ft]][indices]))) 
+                           - min(c(as.numeric(complete_data[[ft]][indices]),
+                                   as.numeric(imputed_data[[ft]][indices])))
+        )
+        mse <- rbind(mse, temp)
+      }
+    }
+  }else{
+    mse <- data.frame(matrix(nrow = 0, ncol = 5))
+    colnames(mse) <- c("feature", "class", "MSE", "n_deleted", "range")
+    for(ft in colnames(complete_data)){
+      indices <- deletion_object[["deleted_indices"]][[ft]]
+      if(is.null(indices)){next}
+      compare_df <- data.frame(indices = indices,
+                               class = complete_data[[class]][indices],
+                               complete_data = complete_data[[ft]][indices],
+                               imputed_data = imputed_data[[ft]][indices])
+      if(is.numeric(compare_df$complete_data) == TRUE){
+        for(cl in unique(compare_df$class)){
+          fi <- filter(compare_df, class == cl)
+          temp <- data.frame(feature = ft,
+                             class = cl,
+                             MSE = mean((fi$complete_data - fi$imputed_data)^2),
+                             n_deleted = length(indices),
+                             range = max(c(fi$complete_data, fi$imputed_data)) 
+                             - min(c(fi$complete_data, fi$imputed_data))
+          )
+          mse <- rbind(mse, temp)
+        }
+        temp <- data.frame(feature = ft,
+                           class = "All",
+                           MSE = mean((compare_df$complete_data - compare_df$imputed_data)^2),
+                           n_deleted = length(indices),
+                           range = max(c(compare_df$complete_data, compare_df$imputed_data)) 
+                           - min(c(compare_df$complete_data, compare_df$imputed_data))
+        )
+        mse <- rbind(mse, temp)
+      }else{
+          for(cl in unique(compare_df$class)){
+          fi <- filter(compare_df, class == cl)
+          temp <- data.frame(feature = ft,
+                             class = cl,
+                             MSE = mean((as.numeric(fi$complete_data) -
+                                           as.numeric(fi$imputed_data))^2),
+                             n_deleted = length(indices),
+                             range = max(c(as.numeric(fi$complete_data),
+                                           as.numeric(fi$imputed_data))) 
+                             - min(c(as.numeric(fi$complete_data),
+                                     as.numeric(fi$imputed_data)))
+          )
+          mse <- rbind(mse, temp)
+        }
+        temp <- data.frame(feature = ft,
+                           class = "All",
+                           MSE = mean((as.numeric(compare_df$complete_data) -
+                                         as.numeric(compare_df$imputed_data))^2),
+                           n_deleted = length(indices),
+                           range = max(c(as.numeric(compare_df$complete_data),
+                                         as.numeric(compare_df$imputed_data))) 
+                           - min(c(as.numeric(compare_df$complete_data),
+                                   as.numeric(compare_df$imputed_data)))
+        )
+        mse <- rbind(mse, temp)
+      }
+    }
+  }
+  mse <- mse |> 
+    mutate(
+      scaled_MSE = MSE/range,
+      scaled_MSE = ifelse(is.na(scaled_MSE), 0, scaled_MSE) #scale the MSE by the range of the feature for comparability (not a huge deal for comparing between imputation types because they all used the same features)
+    ) 
+  cat("\nTotal Scaled MSE:", sum(mse[mse$class != "All", 6]), sep = " ")
+  if(is.null(class) == FALSE){
+    for(cl in unique(mse$class)){
+      if(cl == "All"){next}
+      cat("\n     class", cl, ":", sum(mse[mse$class == cl, 6]), sep = " ")
+    }
+  }
+ return(mse) #produces a dataframe of each feature, its MSE overall, and MSE by class
+}
+```
+
+calculate MSE for features for each imputation method
+
+```{r}
+simple_metrics <- imputation_metrics(train_factor, train_simple_imputed_factor, train_deletion, class = "Status") 
+```
+
+```{r}
+knn_metrics <- imputation_metrics(train_factor, train_knn_imputed_factor, train_deletion, class = "Status")
+```
+
+```{r}
+iter_metrics <- imputation_metrics(train_factor, train_iter_imputed_factor, train_deletion, class = "Status")
+```
+
+Metrics organized into a dataframe for each random seed simulation of imputation:
+
+```{r}
+metrics <- data.frame(seed = 12,
+                      method = c("simple", "knn", "iterative"),
+                      total_scaled_mse = c(4444.113, 4560.022, 3930.958))
+metrics <- rbind(metrics,
+                 data.frame(seed = 11,
+                            method = c("simple", "knn", "iterative"),
+                            total_scaled_mse = c(5385.283, 5467.082, 5055.228)))
+metrics <- rbind(metrics,
+                 data.frame(seed = 10,
+                            method = c("simple", "knn", "iterative"),
+                            total_scaled_mse = c(4937.156, 5564.072, 4455.031)))
+metrics <- rbind(metrics,
+                 data.frame(seed = 9,
+                            method = c("simple", "knn", "iterative"),
+                            total_scaled_mse = c(5297.814, 5740.94, 4878.044)))
+metrics <- rbind(metrics,
+                 data.frame(seed = 8,
+                            method = c("simple", "knn", "iterative"),
+                            total_scaled_mse = c(5628.184, 6147.11, 5040.974)))
+```
+
+Plot:
+
+```{r}
+impute_plot <- metrics |> 
+  group_by(method) |> 
+  summarize(
+    mean = mean(total_scaled_mse),
+    min = min(total_scaled_mse),
+    max = max(total_scaled_mse)
+  ) |> 
+ggplot() +
+  geom_point(aes(x = method, y = mean, color = method), size = 3, show.legend = FALSE) +
+  geom_errorbar(aes(x = method, ymin = min, ymax = max, color = method), show.legend = FALSE) +
+  labs(x = "Imputation Method", y = "Total Scaled Mean Square Error") +
+  scale_color_manual(values = c("#D81B60", "#1E88E5", "#FFC107")) +
+  theme_bw()
+
+ggsave("D:/Machine Learning/Project 2/impute plot.png", impute_plot)
+
+iter_metrics |> 
+  filter(class == "All") |> 
+  arrange(desc(scaled_MSE)) 
+#highest is Age (for this seed, and often)
+
+compare_deleted(feature = "Age",
+                complete_data = train_factor,
+                imputed_data = train_iter_imputed_factor,
+                deletion_object = train_deletion,
+                class = "Status")
+
+iter_metrics |> 
+  filter(class == "All") |> 
+  arrange(scaled_MSE) 
+#lowest is Albumin (for this seed)
+
+compare_deleted(feature = "Albumin",
+                complete_data = train_factor,
+                imputed_data = train_iter_imputed_factor,
+                deletion_object = train_deletion,
+                class = "Status")
+```
+
+Data exploration notes: - Number of days: Seems that the D class distrbution for number of days in the hospital is skewed towards the y-axis (so towards smaller x's). The C class seems normal, and the CL class has so few entries that it is hard to see a clear disribution (but it seems relatively normal as well). Not usable for prediction since this is undetermined until class is decided.
+
+-   Drug: category seems to not be as infomrtaive: about half of each class is on each of the two drugs.
+
+-   Age: seems very informative! Younger people survive more, and survive the transplant as well, whereas older patients seem to die more often.
+
+-   Sex: the data is majorly skewed towards the class of Female. The proportion that are males is highest within the class that died, and the lowest in class C (survived).
+
+-   Ascites: almost none of the class C had ascites, a few of CL had ascites, but proportionally the group with the highest percentage of ascites was class D. The vast majority of patinets with ascites belongs to the class D. Very informative!!
+
+-   Hepatomegaly: a higher proportion of those who had this belong to the class D (died). So, moree likely to die if tested positive for this. Very useful!!
+
+-   Spiders: similar to the previous two, in between ascites and hepatomegaly in terms of commonality. Distinct trend between the classes.
+
+-   Edema: follows same trend, where most of the people who were in class Y and S had died. Y basically indicates you're in class D, whereas S seems similar for CL and D but different for C. Useful feature!
+
+-   Bilirubin: shows a clear boundary - if you are above 4-ish, you are much more likely to be in class D.
+
+-   Cholesterol: those in class C had much lower mean cholesterol than those in CL and D. The mean cholesterol for classes CL and D was very similar
+
+-   Albumin: opposite to what we have seen before! More likely to be in D if you have low albumin, and more likely to be in C high albumin. CL is spread within the mid to high values of albumin.
+
+-   Copper: low copper - good, high copper - bad.
+
+-   Alk_Phos:
+
+-   SGOT:
+
+-   Tryglicerides:
+
+-   Platelets:
+
+-   Prothrombin:
+
+-   Stage: in the class D, most entries are in Stage 4. As we from stage 1 to 4, the ratio of alive to dead decreases. Within the class CL, most entries lie in Stages 3 and 4.
+
+Note: it seems that odds of having hepatomegaly/ascites increase as you go towards the class D (C is lowest, CL is higher, D is highest). In general though, ascites is much less common, and hepatomegaly is very common in those that died. For ascites: might be harder to generate threshold for C vs CL.
+
+![](D:/Machine%20Learning/Project%202/cirrhosis%20info.png)
